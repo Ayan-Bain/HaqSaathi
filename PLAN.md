@@ -1075,23 +1075,23 @@ On each run: for every (scheme, district, concept) triple seen in feedback, comp
 
 In `lib/consensus.test.ts`:
 
-- [ ] 1 report → `publish: false`, reason `below_min_reports`.
-- [ ] 4 reports → still `publish: false`.
-- [ ] 6 reports, 83% agreement, 3 distinct dates → `publish: true`, status `community-reported`.
-- [ ] 6 reports but all on the same `verification_date` → `publish: false`, reason `single_visit_date`.
-- [ ] 6 reports, 50% agreement, 3 dates → `publish: true`, status `conflicting`.
-- [ ] Reports older than 90 days are excluded from the count.
-- [ ] A row with `attended: false` changes neither numerator nor denominator.
-- [ ] A row with `consent_for_aggregate_use: false` is excluded.
-- [ ] Function is pure — same input, same output, no DB access.
+- [x] 1 report → `publish: false`, reason `below_min_reports`.
+- [x] 4 reports → still `publish: false`.
+- [x] 6 reports, 83% agreement, 3 distinct dates → `publish: true`, status `community-reported`.
+- [x] 6 reports but all on the same `verification_date` → `publish: false`, reason `single_visit_date`.
+- [x] 6 reports, 50% agreement, 3 dates → `publish: true`, status `conflicting`.
+- [x] Reports older than 90 days are excluded from the count.
+- [x] A row with `attended: false` changes neither numerator nor denominator.
+- [x] A row with `consent_for_aggregate_use: false` is excluded.
+- [x] Function is pure — same input, same output, no DB access.
 
 End-to-end, against the running app:
 
-- [ ] `POST /api/verification/feedback` with no consent flag → 400.
-- [ ] A second submission with the same `case_key` → 409, not a duplicate row.
-- [ ] Seed 8 records → recompute → exactly **one** published note (`local-residence-certificate`); `caste-certificate` is absent.
-- [ ] `GET /api/schemes/:id` returns `official_documents` and `community_guidance` as **separate top-level keys** — never merged into one array.
-- [ ] Official document list is byte-identical before and after recompute.
+- [x] `POST /api/verification/feedback` with no consent flag → 400.
+- [x] A second submission with the same `case_key` → 409, not a duplicate row.
+- [x] Seed 8 records → recompute → exactly **one** published note (`local-residence-certificate`); `caste-certificate` is absent.
+- [x] `GET /api/schemes/:id` returns `official_documents` and `community_guidance` as **separate top-level keys** — never merged into one array.
+- [x] Official document list is byte-identical before and after recompute.
 - [ ] `guidance_audit` has one row per publication, with `rule_applied` populated.
 
 **Exit criteria:** 15/15. The "official list unchanged" test is the one that proves the core claim of the product; run it last and keep the output for the demo.

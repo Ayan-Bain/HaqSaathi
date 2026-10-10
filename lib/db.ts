@@ -3,12 +3,18 @@ import path from "path";
 import fs from "fs";
 import type { SchemeRecord, CommunityGuidanceRecord } from "./types";
 
-const dataDir = path.join(process.cwd(), "data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// The SQLite file location can be overridden (e.g. by integration tests that
+// need an isolated database) without changing any caller. Defaults to ./data.
+// Behaviour is unchanged when HAQSAATHI_DB_PATH is unset.
+const dbPath =
+  process.env.HAQSAATHI_DB_PATH ||
+  path.join(process.cwd(), "data", "haqsaathi.db");
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
 }
 
-export const db = new Database(path.join(dataDir, "haqsaathi.db"));
+export const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
 
 db.exec(`
