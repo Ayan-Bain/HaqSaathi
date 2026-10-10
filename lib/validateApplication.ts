@@ -134,3 +134,4 @@ export function validateApplication(args: Args): ValidationResult {
 function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
+

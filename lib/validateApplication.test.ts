@@ -282,3 +282,4 @@ describe("Stage 2 — validateApplication deterministic validation", () => {
     expect(run1).toEqual(run2);
   });
 });
+
