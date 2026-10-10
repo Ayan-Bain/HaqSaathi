@@ -12,6 +12,8 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@cline/agents": "^0.0.92",
+    "@cline/shared": "^0.0.92",
     "better-sqlite3": "^13.0.3",
     "next": "16.4.0",
     "react": "19.3.0",

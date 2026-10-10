@@ -1,0 +1,12 @@
+{
+  "schemeId": "assam-orunodoi",
+  "confirmedFields": {
+    "applicant_name_match_status": "matched"
+  },
+  "documentInventory": [
+    { "documentConceptId": "identity-proof", "available": true },
+    { "documentConceptId": "income-certificate", "available": true, "issueDate": "2026-08-01" },
+    { "documentConceptId": "bank-passbook-copy", "available": true }
+  ],
+  "locale": "en-IN"
+}
