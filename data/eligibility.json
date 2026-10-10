@@ -1,0 +1,12 @@
+{
+  "assam-orunodoi": {
+    "states": ["Assam"],
+    "max_household_income_inr_annual": 200000,
+    "source_reference": "scheme-source-4",
+    "status": "verified"
+  },
+  "pm-kisan": {
+    "source_reference": "scheme-source-6",
+    "status": "verified"
+  }
+}

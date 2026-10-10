@@ -3,6 +3,7 @@ import type { CommunityGuidanceRecord, SchemeRecord } from "@/lib/types";
 import { CommunityNote } from "./community-note";
 import { ReadinessPanel } from "./readiness-panel";
 import { FeedbackForm } from "./feedback-form";
+import { DemandCheckPanel } from "./demand-check-panel";
 
 export function SchemeDetail({ scheme, guidance }: { scheme: SchemeRecord; guidance: CommunityGuidanceRecord[] }) {
   const heading = <header className="scheme-heading">
@@ -41,14 +42,7 @@ export function SchemeDetail({ scheme, guidance }: { scheme: SchemeRecord; guida
       {published.map((note) => <CommunityNote key={note.guidance_id} note={note} />)}
     </section>}
     <ReadinessPanel scheme={scheme} />
-    <section className="panel" aria-labelledby="fees-heading">
-      <h2 id="fees-heading">Fees and help</h2>
-      {scheme.official_fee?.status === "verified" ? <>
-        <p>The official source we checked lists an application fee of ₹{scheme.official_fee.amount_inr}. Last checked: {scheme.official_fee.checked_at ?? scheme.official_source_checked_at}.</p>
-        <a className="source-link" href={scheme.official_source_url!} target="_blank" rel="noopener noreferrer">Official fee source ↗ ({scheme.official_fee.source_reference})</a>
-      </> : <p>We do not have a verified fee record. Ask the office to show the official fee rule.</p>}
-      <p className="muted">Confirm current fees and support options with the official office. Fee comparison (Demand Check) is not available yet.</p>
-    </section>
+    <DemandCheckPanel scheme={scheme} />
     <FeedbackForm schemeId={scheme.scheme_id} />
   </main>;
 }

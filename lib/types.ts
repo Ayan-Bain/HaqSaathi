@@ -109,3 +109,46 @@ export interface DocumentConceptRecord {
   synonyms: string[];
 }
 
+// Stage 7 — Scheme Discovery
+export interface DiscoveryProfile {
+  state: string | null;
+  ageBand: "under-18" | "18-40" | "40-60" | "60-plus" | "unknown";
+  gender: "female" | "male" | "other" | "prefer-not-to-say";
+  incomeBand: "below-1l" | "1l-2.5l" | "2.5l-5l" | "above-5l" | "unknown";
+  socialCategory: "general" | "sc" | "st" | "obc" | "prefer-not-to-say";
+  benefitInterest: string[];
+}
+
+export interface EligibilityCriteria {
+  states?: string[] | null;
+  gender?: Array<"female" | "male" | "other"> | null;
+  min_age?: number | null;
+  max_household_income_inr_annual?: number | null;
+  social_categories?: Array<"general" | "sc" | "st" | "obc"> | null;
+  source_reference: string;
+  status: "verified" | "indicative";
+}
+
+export interface SchemeForMatch {
+  scheme_id: string;
+  name: string;
+  jurisdiction: "central" | "state";
+  state: string | null;
+  category: string | null;
+  verification_tier: "verified" | "listed";
+  eligibility?: EligibilityCriteria | null;
+}
+
+export interface MatchResult {
+  scheme_id: string;
+  tier: "verified" | "listed";
+  relevance: "likely" | "possible";
+  reasons: string[];
+}
+
+export interface DiscoveryResponse {
+  matches: MatchResult[];
+  message: string;
+  generatedBy: "agent" | "deterministic";
+}
+

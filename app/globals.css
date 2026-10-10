@@ -78,6 +78,11 @@ input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; flex-sh
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 legend { font-weight: 650; margin-bottom: 8px; }
 .error { padding: 12px; background: #fff1ee; border-left: 4px solid #982e23; color: #80251e; }
+.discovery-panel { margin-bottom: 28px; }
+.benefit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.discovery-notice { font-size: .85rem; border-left: 3px solid #176b89; background: #eef4f7; padding: 12px 14px; border-radius: 6px; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.reason-list { margin: 0; padding-left: 18px; font-size: .85rem; color: #47575e; display: grid; gap: 4px; }
 .site-footer { padding: 24px; text-align: center; border-top: 1px solid #d5dadb; font-size: .85rem; color: #52636b; }
 .skip-link { position: absolute; top: -100px; left: 12px; padding: 12px; background: white; z-index: 20; }
 .skip-link:focus { top: 12px; }
@@ -87,6 +92,6 @@ legend { font-weight: 650; margin-bottom: 8px; }
   .independence { max-width: none; font-size: .78rem; }
   .page-shell { padding: 22px 16px 36px; }
   .panel, .scheme-card { padding: 18px; }
-  .field-grid, .catalogue-grid { grid-template-columns: minmax(0, 1fr); }
+  .field-grid, .catalogue-grid, .benefit-grid { grid-template-columns: minmax(0, 1fr); }
   .hero { margin-top: 0; }
 }

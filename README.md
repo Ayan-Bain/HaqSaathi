@@ -3,25 +3,50 @@
 An independent scheme application companion. The catalogue includes verified and
 listed schemes; community reports are never merged into official checklists.
 
-## Stage 5 UI
+## Stage 6 — Demand Check, Acceptance Pass, Freeze
 
 From `C:\HaqSaathi`, run `pnpm seed` once, then `pnpm dev`. Open
 `http://localhost:3000`. Use the state/category filters or open a verified scheme
-to check document readiness and submit real verification feedback.
+to check document readiness, run **Demand Check**, and submit real verification feedback.
 
-- Verified schemes show source links, check dates, a readiness form, and published
-  community notes with scope, report count, dates, and uncertainty.
-- Listed schemes show only the unverified notice and official portal link.
-- Synthetic evidence is explicitly marked **DEMO DATA**, including mixed synthetic
-  and real evidence. Existing databases are migrated automatically.
-- Feedback requires consent. Ambiguous document names require confirmation.
-  The form is **not a simulation**: it saves real feedback; use a test database
-  when rehearsing. Demand Check is reserved for Stage 6.
+### Tier A (Verified) — 2 schemes
+- **assam-orunodoi** (Orunodoi Scheme, Assam, income-support) — full official document list, fee record (₹0, verified), validity rules, source refs, checked 2026-10-10
+- **pm-kisan** (PM-KISAN, central, income-support) — full official document list, fee record (₹0, verified), validity rules, source refs, checked 2026-10-10
 
-Copy `C:\HaqSaathi\.env.local.example` to `C:\HaqSaathi\.env.local` and set
-`RECOMPUTE_SECRET` to enable the protected recompute API. Send that secret in
-`x-recompute-secret` with `POST /api/community-guidance/recompute`.
-Recompute is server-side only; the secret is never exposed in the UI.
+**Why these two:** They are the only schemes where we personally read the official government pages and recorded every document, fee, and validity rule with a source reference and check date. Every other scheme in the catalogue is Tier B.
+
+### Tier B (Listed) — 11 schemes
+All remaining schemes (pmjay, pmay-urban, pmuy, pmmvy, nsp-scholarships, nfsa-ration-card, mgnrega-job-card, assam-nijut-moina, enam-agri, swayam-education, plus any added without verification). Tier B has only name, jurisdiction, state, official portal URL, and `source_checked_at`. No checklist, no readiness check, no feedback form, no fee claim — the absence is the feature.
+
+### Community notes are synthetic
+The 8 feedback rows seeded in `data/seed-feedback.json` are **synthetic** (DEMO DATA). They are not from real applicants. Published notes carry an `is_demo_data` flag and a prominent red **DEMO DATA** banner. A mixed note (some synthetic, some real) still shows the banner. This is the honest position: we have no real reports yet, and we do not pretend otherwise.
+
+### Freshness expiry is unimplemented
+Design acceptance test 6 (confidence decay over time) is **not implemented**. Notes do not age out or get re-reviewed automatically. This is documented as known-missing rather than pretending it passes.
+
+### SDK agent path: fallback-only for this demo
+`@cline/agents` is installed but no provider credentials are configured in the demo environment. The readiness endpoint always returns `generatedBy: "deterministic"` with template explanations. The agent code path is present, tested, and guarded by `validateAgentReferences()`; it will activate if `CLINE_MODEL_API_KEY` is set and `FORCE_FALLBACK` is not `1`. See Stage 3 tests for the allow-list contract.
+
+## Stage 7 — Scheme-discovery chatbot
+
+An optional entry point on the catalogue page ("Find schemes for me"). The user
+answers a few coarse, skippable questions — state, age band, gender, income band,
+social category, benefit interest — and gets a tier-aware shortlist of schemes
+**worth checking**. It never collects Aadhaar/PAN/bank/DOB (bands only), and the
+route rejects any 12-digit value as potential PII.
+
+- **No eligibility verdicts.** A deterministic, pure `matchSchemes()` owns every
+  include/exclude. It excludes only on a catalogue-state mismatch or a *verified*
+  eligibility contradiction, and uses the band's most-permissive edge so a straddling
+  band is kept ("when in doubt, include"). Unknown / prefer-not-to-say never excludes.
+  Results say "you may be able to apply," never "you qualify."
+- **Verified eligibility** lives in `data/eligibility.json` (sidecar, Tier-A honesty
+  gate), joined in memory — the frozen Stage 1 schema is untouched.
+- **Agent is conversation-only**, bounded like Stage 3: `validateDiscoveryReferences()`
+  rejects any scheme the matcher didn't return, forbidden language ("eligible",
+  "qualify", "guaranteed", "will get", "entitled") in summary/notes/reasons, and a
+  weakened disclaimer. Falls back to the deterministic form + templates when no
+  credentials are set or `FORCE_FALLBACK=1`.
 
 ## Validation
 
@@ -31,10 +56,11 @@ pnpm exec tsc --noEmit
 pnpm build
 ```
 
-Stage 5 includes component-rendering tests, tier/API gates, demo-provenance and
-confirmation tests, and a **mocked** agent-versus-fallback contract test. A live
-model comparison still requires valid provider credentials. Without credentials,
-readiness uses the deterministic path and shows **Standard explanation**.
+All 108 tests pass (Stages 1–7); `tsc --noEmit` and `next build` are clean. Stage 6 adds
+the Demand Check API tests (`tests/stage6.test.ts`): tier gate, zero-fee mismatch,
+positive-fee match/mismatch, unknown-fee verdict, PII/body-size guards, and the
+neutrality guard (no "corrupt", "illegal", "bribe"). Stage 7 adds `tests/stage7.test.ts`
+(allow-list + route guards) and `lib/discovery.test.ts` (matcher exclusion rules).
 
 `C:\HaqSaathi\scripts\verify-stage5.mjs` runs real-browser smoke checks via Chrome
 DevTools Protocol using built-in Node APIs (no new browser dependency). Start a

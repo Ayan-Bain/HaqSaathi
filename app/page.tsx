@@ -1,11 +1,16 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Catalogue } from "@/components/catalogue";
+import { DiscoveryPanel } from "@/components/discovery-panel";
 import { getCatalogue } from "@/lib/db";
 
 async function CatalogueData() {
   await connection();
-  return <Catalogue schemes={getCatalogue()} />;
+  const schemes = getCatalogue();
+  return <>
+    <DiscoveryPanel schemes={schemes} />
+    <Catalogue schemes={schemes} />
+  </>;
 }
 
 export default function Home() {

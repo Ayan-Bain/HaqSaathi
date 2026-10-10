@@ -65,6 +65,7 @@ Two review points where you read the code line by line rather than trusting gree
 | 5 | UI: catalogue, scheme page, readiness, feedback, community panel | 25 | 20 | 45 | 3:20 |
 | 6 | Demand Check, acceptance pass, freeze | 10 | 30 | 40 | 4:00 |
 | — | **Reserve** | — | — | **60** | 5:00 |
+| 7 | Scheme-discovery chatbot — *additive, beyond the core; fund from reserve or a 6th hour* | 20 | 15 | 35 | — |
 
 The 60-minute reserve is not slack to be spent early. With an agent doing the building, the realistic failure mode isn't a stage running slightly long — it's one stage going sideways (SDK won't install, a government portal is down, the agent confidently rewrites something and the tests still pass). Reserve exists for exactly one of those.
 
@@ -1267,34 +1268,214 @@ Escalation channels: show only numbers you personally opened an official page to
 
 Run the full design-doc acceptance list end to end **yourself**, against the running app. Do not ask Cline whether these pass — an agent reporting on its own build is the one audit that proves nothing. Every item should already be green from an earlier stage; this is confirmation, not debugging:
 
-- [ ] 1 — official requirement shows source + check date; no unverified scheme shows a requirement at all
-- [ ] 2 — single report is not published
-- [ ] 3 — note publishes only after count + agreement + window + scope pass
-- [ ] 4 — official list unchanged by feedback
-- [ ] 5 — conflicting feedback produces an uncertainty label
-- [ ] 7 — missing/expired warning explains its rule
-- [ ] 8 — low-confidence extraction asks the user to confirm
-- [ ] 9 — non-attendee not counted as negative
-- [ ] 10 — no Aadhaar/PAN/bank field exists anywhere in the feedback schema (grep for it)
-- [ ] 11 — zero fee shown only with a verified record
-- [ ] 12 — complaint/script text is neutral and invents no names
-- [ ] 13 — check route works with the SDK unavailable
-- [ ] 14 — agent cannot read another scheme's record
-- [ ] 15 — agent has no write path (grep the tool list: exactly one tool, read-only)
-- [ ] 16 — invalid agent output falls back
-- [ ] 17 — agent cannot promote community → official
-- [ ] 18 — agent failure returns a controlled response
+- [x] 1 — official requirement shows source + check date; no unverified scheme shows a requirement at all
+- [x] 2 — single report is not published
+- [x] 3 — note publishes only after count + agreement + window + scope pass
+- [x] 4 — official list unchanged by feedback
+- [x] 5 — conflicting feedback produces an uncertainty label
+- [x] 7 — missing/expired warning explains its rule
+- [x] 8 — low-confidence extraction asks the user to confirm
+- [x] 9 — non-attendee not counted as negative
+- [x] 10 — no Aadhaar/PAN/bank field exists anywhere in the feedback schema (grep for it)
+- [x] 11 — zero fee shown only with a verified record
+- [x] 12 — complaint/script text is neutral and invents no names
+- [x] 13 — check route works with the SDK unavailable
+- [x] 14 — agent cannot read another scheme's record
+- [x] 15 — agent has no write path (grep the tool list: exactly one read-only tool; discovery route has none)
+- [x] 16 — invalid agent output falls back
+- [x] 17 — agent cannot promote community → official
+- [x] 18 — agent failure returns a controlled response
 
 Test 6 (freshness expiry) is cut at 5 hours — note it in the README as known-missing rather than pretending it passes.
 
+**Acceptance pass result:** confirmed against the running app and the 108-test suite (`stage1`/`3`/`4`/`5`/`5-fallback`/`6`/`7` + `consensus`/`validateApplication`/`discovery`), plus grep checks for tests 10, 12 and 15. Test 6 remains unimplemented and is flagged in the README.
+
 ### Freeze (10 min)
 
-- [ ] `pnpm test` fully green; paste the output into the README.
-- [ ] README states: which schemes are Tier A vs Tier B and why, that community notes are synthetic, that freshness expiry is unimplemented, and whether the SDK path is live or fallback-only.
+- [x] `pnpm test` fully green (108 tests across 10 files); count recorded in the README.
+- [x] README states: which schemes are Tier A vs Tier B and why, that community notes are synthetic, that freshness expiry is unimplemented, whether the SDK path is live or fallback-only, and the Stage 7 discovery chatbot.
 - [ ] Every Tier B URL re-checked for 200 immediately before the demo.
 - [ ] Final commit tagged.
 - [ ] Cline recording covers: building the check route, building the consensus tests, and a test going red → green.
 - [ ] Demo rehearsed once against a **fresh** database (`rm data/haqsaathi.db && pnpm seed`) so the community panel genuinely starts empty.
+
+---
+
+## Stage 7 — Scheme-discovery chatbot (additive — build only after Stage 6 is green)
+
+### Why this is a separate, cuttable stage
+The design doc calls scheme discovery "only an entry point to the application workflow" (§6.1). The product is the readiness check + community-feedback loop, not the finder. So this stage is additive: it never blocks the demo, and it is the first thing to drop if Stage 6 isn't green or the reserve is gone. It inherits every honesty rule the rest of the plan enforces — it just applies them to "which schemes might I apply for?" instead of "am I ready to apply?".
+
+### The one trap to avoid
+A chatbot that *decides eligibility* is the dishonest version of this feature, and it fails exactly like invented document lists do: a judge asks "how do you know I qualify?" and there is no source. So the chatbot never says "you are eligible" or "you qualify." It says "you may be able to apply — confirm on the official portal." The deterministic matcher owns every inclusion and exclusion; the model only turns answers into a structured profile and phrases the already-decided list. Same split as Stage 3: **facts are deterministic, language is the agent.**
+
+### Goal
+A user answers a few coarse, non-sensitive questions (in chat, or a fallback dropdown form) and gets a tier-aware, honestly-labelled shortlist of schemes worth checking — each linking into the existing Tier A readiness flow or the Tier B portal. No eligibility verdicts, no sensitive data.
+
+Build ~20 min (one pure matcher + its tests, one route, one UI panel). Verify ~15 min: read the matcher's exclusion logic line by line, and run the no-verdict and no-PII tests yourself.
+
+### Data: eligibility without reopening the frozen schema
+Stage 1's schema is frozen. Don't `ALTER` it under time pressure. The matcher joins two sources in memory:
+
+1. **Catalogue metadata already in `schemes`** — `jurisdiction`, `state`, `category`. Present for every scheme, both tiers. This alone supports state-applicability and benefit-type relevance.
+2. **Optional `data/eligibility.json`** — a sidecar keyed by `scheme_id`, populated *only* where you actually read the official eligibility page, under the same honesty gate as Tier A. Verified hard criteria only; anything you couldn't confirm is simply absent, and therefore never excludes anyone.
+
+(If you prefer it in the DB, add it idempotently — `ALTER TABLE schemes ADD COLUMN eligibility_criteria TEXT` guarded so re-seeding is safe — but the sidecar keeps the frozen Stage 1 schema untouched.)
+
+`data/eligibility.json`:
+```json
+{
+  "assam-orunodoi": {
+    "states": ["Assam"],
+    "max_household_income_inr_annual": 200000,
+    "source_reference": "scheme-source-4",
+    "status": "verified"
+  },
+  "ignoaps": {
+    "min_age": 60,
+    "source_reference": "scheme-source-5",
+    "status": "verified"
+  }
+}
+```
+
+### Profile: coarse by design
+The intake collects only non-sensitive, bucketed facts. This is acceptance test 10 applied to discovery — **no Aadhaar, PAN, bank number, exact date of birth, or free-text identity**. Age is a band, income is a band, every field is skippable.
+
+`lib/types.ts` (add):
+```ts
+export interface DiscoveryProfile {
+  state: string | null;                 // from the fixed catalogue state list, or null
+  ageBand: "under-18" | "18-40" | "40-60" | "60-plus" | "unknown";
+  gender: "female" | "male" | "other" | "prefer-not-to-say";
+  incomeBand: "below-1l" | "1l-2.5l" | "2.5l-5l" | "above-5l" | "unknown";
+  socialCategory: "general" | "sc" | "st" | "obc" | "prefer-not-to-say";
+  benefitInterest: string[];            // category ids: income-support | health | ...
+}
+
+export interface EligibilityCriteria {
+  states?: string[] | null;
+  gender?: Array<"female" | "male" | "other"> | null;
+  min_age?: number | null;
+  max_household_income_inr_annual?: number | null;
+  social_categories?: Array<"general" | "sc" | "st" | "obc"> | null;
+  source_reference: string;
+  status: "verified" | "indicative";
+}
+```
+
+### The matcher: exclude only on a verified contradiction
+`lib/discovery.ts` — pure function, no I/O, no model.
+
+```ts
+import type { DiscoveryProfile, EligibilityCriteria } from "./types";
+
+export interface SchemeForMatch {
+  scheme_id: string;
+  name: string;
+  jurisdiction: "central" | "state";
+  state: string | null;
+  category: string | null;
+  verification_tier: "verified" | "listed";
+  eligibility?: EligibilityCriteria | null;   // from data/eligibility.json, may be absent
+}
+
+export interface MatchResult {
+  scheme_id: string;
+  tier: "verified" | "listed";
+  relevance: "likely" | "possible";
+  reasons: string[];        // e.g. "available in Assam", "matches the help you asked about"
+  // never a boolean "eligible" — by design
+}
+
+export function matchSchemes(profile: DiscoveryProfile, schemes: SchemeForMatch[]): MatchResult[] {
+  const out: MatchResult[] = [];
+
+  for (const s of schemes) {
+    // 1. Hard, factual exclusions — only from catalogue facts or VERIFIED criteria.
+    //    Unknown / prefer-not-to-say NEVER excludes (do not penalise — test 9's spirit).
+    if (s.jurisdiction === "state" && s.state && profile.state && s.state !== profile.state) continue;
+
+    const e = s.eligibility;
+    if (e?.status === "verified") {
+      if (e.states && profile.state && !e.states.includes(profile.state)) continue;
+      if (e.gender && profile.gender !== "prefer-not-to-say" && profile.gender !== "other"
+          && !e.gender.includes(profile.gender)) continue;
+      if (e.min_age != null && ageBandIsBelow(profile.ageBand, e.min_age)) continue;
+      if (e.max_household_income_inr_annual != null
+          && incomeBandIsAbove(profile.incomeBand, e.max_household_income_inr_annual)) continue;
+      if (e.social_categories && profile.socialCategory !== "prefer-not-to-say"
+          && !e.social_categories.includes(profile.socialCategory)) continue;
+    }
+
+    // 2. Relevance (ranking only — never an exclusion).
+    const reasons: string[] = [];
+    if (s.state && profile.state && s.state === profile.state) reasons.push(`available in ${s.state}`);
+    if (s.jurisdiction === "central") reasons.push("central scheme, available across India");
+    const benefitHit = !!s.category && profile.benefitInterest.includes(s.category);
+    if (benefitHit) reasons.push("matches the kind of help you asked about");
+
+    out.push({
+      scheme_id: s.scheme_id,
+      tier: s.verification_tier,
+      relevance: benefitHit && (!s.state || s.state === profile.state) ? "likely" : "possible",
+      reasons,
+    });
+  }
+
+  // Verified schemes first, then "likely" before "possible".
+  return out.sort((a, b) =>
+    (a.tier === "verified" ? 0 : 1) - (b.tier === "verified" ? 0 : 1)
+    || (a.relevance === "likely" ? 0 : 1) - (b.relevance === "likely" ? 0 : 1));
+}
+```
+
+`ageBandIsBelow` / `incomeBandIsAbove` compare a band against its *most permissive* edge, so a band only excludes when its optimistic end still contradicts the rule (`under-18` is below 60, but `18-40` is not; `above-5l` is above ₹2,00,000, but `below-1l` is not). When in doubt, include — a false shortlist entry costs a click, a false exclusion hides a benefit someone was entitled to.
+
+### Route + agent boundary
+`POST /api/discovery/match` — deterministic, always:
+1. Validate the profile with a Zod schema that **only accepts the bucketed fields above**. Reject anything resembling raw PII — an email, or a 10–16 digit run (cheap Aadhaar/PAN/bank guard). Keep nothing but the validated profile.
+2. Join `schemes` + `data/eligibility.json`, run `matchSchemes()`, return the list.
+
+The Cline agent is optional and bounded exactly like Stage 3:
+- It may **parse** the user's free-text answers into a `DiscoveryProfile` (extraction), validated by Zod before use.
+- It may **phrase** the matcher's output — but it may name only `scheme_id`s the matcher returned, and its output is rejected (→ fallback form + template phrasing) if it introduces a scheme the matcher didn't, or contains any of: "eligible", "you qualify", "guaranteed", "will get". `validateDiscoveryReferences()` is the discovery twin of `validateAgentReferences()` and is the whole security boundary for this stage — read it by eye.
+- It never receives income or age as raw values beyond the band, and never an identifier.
+
+Fallback: no key / `FORCE_FALLBACK=1` → a plain dropdown stepper drives the same matcher and a template renderer. The chatbot degrades to a guided form, which is the design's stated text fallback (§6, principle 10).
+
+### UI
+A "Find schemes" entry on `app/page.tsx` (the catalogue) opens a chat/stepper panel. Results render as the existing catalogue cards (tier badge intact), grouped under **"Worth checking"** with a persistent banner:
+
+> This is a starting point, not an eligibility decision. HaqSaathi is an independent information tool, not a government service. Confirm on the official portal before you apply.
+
+Tier A results link into the readiness flow; Tier B results link to the portal with the usual unverified banner. No result is ever styled as a guarantee.
+
+### Verification tests — Stage 7
+`lib/discovery.test.ts`:
+- [x] `matchSchemes` is pure — same input, same output, no DB or model access.
+- [x] A `state`-jurisdiction scheme for Assam is excluded for a profile with `state: "Kerala"`.
+- [x] A central scheme is returned regardless of profile `state`.
+- [x] A verified `gender: ["female"]` criterion excludes a `male` profile, but a `prefer-not-to-say` profile is **not** excluded.
+- [x] A verified `min_age: 60` excludes `ageBand: "18-40"` and keeps `60-plus`; `unknown` is kept.
+- [x] A verified income ceiling excludes `above-5l` **and** `2.5l-5l`, keeps the straddling `1l-2.5l` and `below-1l`; `unknown` is kept.
+- [x] A scheme with **no** eligibility entry is never excluded by eligibility — only by catalogue state.
+- [x] No `MatchResult` carries a boolean eligibility field, and the word "eligible"/"qualify" never appears in `reasons`.
+
+Route / agent (`tests/stage7.test.ts`):
+- [x] `POST /api/discovery/match` with a well-formed profile returns a shortlist; verified schemes sort first.
+- [x] A profile that matches nothing returns an honest empty state ("no confident matches — browse the full catalogue"), not a filled-in guess. *(Handled by `discovery-fallback.summarise()` + the panel's empty render; with the real catalogue central schemes always match, so the empty branch is exercised by unit input rather than the live endpoint.)*
+- [x] The profile schema rejects a field containing a 12-digit number (PII guard) → 400, and the server stores no raw PII. (Plus a 413 on an over-cap body.)
+- [x] With `FORCE_FALLBACK=1`: the deterministic path returns `generatedBy: "deterministic"` and the matcher's scheme set. *(Live agent-vs-form parity unchecked — no model credentials configured, same as Stage 3/5.)*
+- [x] `validateDiscoveryReferences()` rejects an agent output naming a `scheme_id` the matcher didn't return, forbidden language in a note **or in `reasons`**, and a weakened disclaimer.
+
+**Implementation verification (Stage 7):** 108 automated tests pass (8 new in `tests/stage7.test.ts`), `tsc --noEmit` and `next build` are clean, and the endpoint was smoke-tested live in fallback mode (shortlist with honest reasons, PII→400, empty profile→all-schemes-as-"possible"). Review corrected three defects in the delivered code: the income check used the band's upper edge (so `above-5l` was never excluded and a straddling band was falsely excluded — now uses the permissive lower edge), `validateDiscoveryReferences` did not scan agent-rewritten `reasons`, and the route carried a non-existent `maxTokensPerTurn` SDK field (now `modelOptions.maxTokens`, matching the Stage 3 route) plus a `state` type that failed `tsc`. The chatbot UI (`components/discovery-panel.tsx`) was an empty stub; it is now built and wired into the catalogue page.
+
+**Exit criteria:** 13/13, with the no-verdict test (`reasons` never asserts eligibility) read by eye, not just run. This stage is done when the finder can hand someone a shortlist without ever telling them they are entitled to anything.
+
+**Escape hatch:** drop the agent entirely and ship the dropdown stepper + deterministic matcher — that is the honest core of the feature; the chat layer is only convenience. If even that is tight, cut the stage: it is an entry point, and the catalogue already lets users browse.
+
+> **Demo slot (optional):** if built, the chatbot becomes step 1.5 of the demo — a user says "I'm a farmer in Assam, low income," and the finder returns a shortlist that visibly labels each result as "worth checking, not an eligibility decision," then opens a Tier A scheme into the existing readiness flow. It reinforces the same pitch as the rest: the product narrows honestly and never asserts what it hasn't verified.
 
 ---
 
