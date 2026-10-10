@@ -1,0 +1,88 @@
+[
+  {
+    "scheme_id": "assam-orunodoi",
+    "name": "Orunodoi Scheme",
+    "jurisdiction": "state",
+    "state": "Assam",
+    "category": "income-support",
+    "verification_tier": "verified",
+    "official_apply_url": "https://finance.assam.gov.in/",
+    "official_source_url": "https://finance.assam.gov.in/",
+    "official_source_checked_at": "2026-10-10",
+    "official_documents": [
+      {
+        "document_id": "identity-proof",
+        "name": "Identity proof (Aadhaar / Voter ID card)",
+        "source_reference": "assam-orunodoi-src-1",
+        "is_official": true
+      },
+      {
+        "document_id": "income-certificate",
+        "name": "Income certificate (Annual family income < ₹2 Lakh)",
+        "source_reference": "assam-orunodoi-src-2",
+        "is_official": true
+      },
+      {
+        "document_id": "bank-passbook-copy",
+        "name": "Bank passbook copy (Aadhaar linked)",
+        "source_reference": "assam-orunodoi-src-1",
+        "is_official": true
+      }
+    ],
+    "official_fee": {
+      "amount_inr": 0,
+      "status": "verified",
+      "source_reference": "assam-orunodoi-src-3",
+      "checked_at": "2026-10-10"
+    },
+    "validity_rules": {
+      "income-certificate": {
+        "max_age_months": 12,
+        "source_reference": "assam-orunodoi-src-2"
+      }
+    }
+  },
+  {
+    "scheme_id": "pm-kisan",
+    "name": "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+    "jurisdiction": "central",
+    "state": null,
+    "category": "income-support",
+    "verification_tier": "verified",
+    "official_apply_url": "https://pmkisan.gov.in/",
+    "official_source_url": "https://pmkisan.gov.in/",
+    "official_source_checked_at": "2026-10-10",
+    "official_documents": [
+      {
+        "document_id": "aadhaar-card",
+        "name": "Aadhaar Card",
+        "source_reference": "pmkisan-src-1",
+        "is_official": true
+      },
+      {
+        "document_id": "land-records",
+        "name": "Land ownership records (Khata/Khasra/ROR)",
+        "source_reference": "pmkisan-src-2",
+        "is_official": true
+      },
+      {
+        "document_id": "bank-passbook",
+        "name": "Bank account details / passbook copy",
+        "source_reference": "pmkisan-src-1",
+        "is_official": true
+      }
+    ],
+    "official_fee": {
+      "amount_inr": 0,
+      "status": "verified",
+      "source_reference": "pmkisan-src-3",
+      "checked_at": "2026-10-10"
+    },
+    "validity_rules": {
+      "land-records": {
+        "max_age_months": 36,
+        "source_reference": "pmkisan-src-2"
+      }
+    }
+  }
+]

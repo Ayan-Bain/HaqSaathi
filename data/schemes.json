@@ -1,0 +1,100 @@
+[
+  {
+    "scheme_id": "pm-kisan",
+    "name": "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+    "jurisdiction": "central",
+    "category": "income-support",
+    "verification_tier": "listed",
+    "official_apply_url": "https://pmkisan.gov.in/"
+  },
+  {
+    "scheme_id": "pmjay",
+    "name": "Ayushman Bharat PM-JAY",
+    "jurisdiction": "central",
+    "category": "health",
+    "verification_tier": "listed",
+    "official_apply_url": "https://nha.gov.in/"
+  },
+  {
+    "scheme_id": "pmay-urban",
+    "name": "Pradhan Mantri Awas Yojana – Urban",
+    "jurisdiction": "central",
+    "category": "housing",
+    "verification_tier": "listed",
+    "official_apply_url": "https://pmay-urban.gov.in/"
+  },
+  {
+    "scheme_id": "pmuy",
+    "name": "Pradhan Mantri Ujjwala Yojana (PMUY)",
+    "jurisdiction": "central",
+    "category": "energy",
+    "verification_tier": "listed",
+    "official_apply_url": "https://www.pmuy.gov.in/"
+  },
+  {
+    "scheme_id": "pmmvy",
+    "name": "Pradhan Mantri Matru Vandana Yojana",
+    "jurisdiction": "central",
+    "category": "maternity",
+    "verification_tier": "listed",
+    "official_apply_url": "https://pmmvy.wcd.gov.in/"
+  },
+  {
+    "scheme_id": "nsp-scholarships",
+    "name": "National Scholarship Portal Schemes",
+    "jurisdiction": "central",
+    "category": "education",
+    "verification_tier": "listed",
+    "official_apply_url": "https://scholarships.gov.in/"
+  },
+  {
+    "scheme_id": "nfsa-ration-card",
+    "name": "National Food Security Act (NFSA) Ration Card",
+    "jurisdiction": "central",
+    "category": "food-security",
+    "verification_tier": "listed",
+    "official_apply_url": "https://nfsa.gov.in/"
+  },
+  {
+    "scheme_id": "mgnrega-job-card",
+    "name": "MGNREGA Job Card",
+    "jurisdiction": "central",
+    "category": "employment",
+    "verification_tier": "listed",
+    "official_apply_url": "https://nrega.nic.in/"
+  },
+  {
+    "scheme_id": "assam-orunodoi",
+    "name": "Orunodoi Scheme",
+    "jurisdiction": "state",
+    "state": "Assam",
+    "category": "income-support",
+    "verification_tier": "listed",
+    "official_apply_url": "https://finance.assam.gov.in/"
+  },
+  {
+    "scheme_id": "assam-nijut-moina",
+    "name": "Mukhya Mantrir Nijut Moina Aasoni",
+    "jurisdiction": "state",
+    "state": "Assam",
+    "category": "education",
+    "verification_tier": "listed",
+    "official_apply_url": "https://directorateofhighereducation.assam.gov.in/"
+  },
+  {
+    "scheme_id": "enam-agri",
+    "name": "National Agriculture Market (e-NAM)",
+    "jurisdiction": "central",
+    "category": "agriculture",
+    "verification_tier": "listed",
+    "official_apply_url": "https://enam.gov.in/web/"
+  },
+  {
+    "scheme_id": "swayam-education",
+    "name": "SWAYAM Free Online Higher Education",
+    "jurisdiction": "central",
+    "category": "education",
+    "verification_tier": "listed",
+    "official_apply_url": "https://swayam.gov.in/"
+  }
+]

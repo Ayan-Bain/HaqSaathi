@@ -1,0 +1,23 @@
+[
+  {
+    "concept_id": "local-residence-certificate",
+    "canonical_name": "Local residence certificate",
+    "synonyms": [
+      "residence certificate",
+      "domicile certificate",
+      "local resident proof",
+      "nivas praman patra",
+      "residential certificate"
+    ]
+  },
+  {
+    "concept_id": "caste-certificate",
+    "canonical_name": "Caste certificate",
+    "synonyms": [
+      "caste proof",
+      "jati praman patra",
+      "community certificate",
+      "category certificate"
+    ]
+  }
+]
