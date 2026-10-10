@@ -239,7 +239,7 @@ describe("Stage 4 — Feedback and consensus pipeline (end-to-end)", () => {
         schemeId: "pmjay", // Tier B listed scheme
         caseKey: "case-tierb-001",
       });
-      expect(res.status).toBe(422);
+      expect(res.status).toBe(400);
     });
 
     it("2c. Low-confidence document name returns needs_confirmation and stores nothing", async () => {
@@ -271,6 +271,38 @@ describe("Stage 4 — Feedback and consensus pipeline (end-to-end)", () => {
       expect(res.status).toBe(201);
       const json = await res.json();
       expect(json.additionalDocumentConcepts).toContain("local-residence-certificate");
+    });
+
+    it.each([
+      { names: ["residence"], confirmed: ["invented-concept"] },
+      { names: ["residence"], confirmed: ["caste-certificate"] },
+      { names: ["residence", "jati"], confirmed: ["local-residence-certificate"] },
+      { names: ["residence"], confirmed: ["local-residence-certificate", "local-residence-certificate"] },
+      { names: ["unrecognisable document"], confirmed: ["local-residence-certificate"] },
+      { names: ["Local residence certificate"], confirmed: ["local-residence-certificate"] },
+    ])("rejects arbitrary or incomplete confirmations: $names / $confirmed", async ({ names, confirmed }) => {
+      const caseKey = "case-invalid-confirmation";
+      const res = await postFeedback({
+        ...VALID_FEEDBACK,
+        additionalDocumentNames: names,
+        confirmedConcepts: confirmed,
+        caseKey,
+      });
+      expect(res.status).toBe(400);
+      expect(db.prepare("SELECT feedback_id FROM feedback WHERE case_key = ?").get(caseKey)).toBeUndefined();
+    });
+
+    it("accepts one matching confirmation per ambiguous suggestion regardless of order", async () => {
+      const res = await postFeedback({
+        ...VALID_FEEDBACK,
+        additionalDocumentNames: ["residence", "jati"],
+        confirmedConcepts: ["caste-certificate", "local-residence-certificate"],
+        caseKey: "case-multiple-confirmations",
+      });
+      expect(res.status).toBe(201);
+      expect((await res.json()).additionalDocumentConcepts).toEqual([
+        "caste-certificate", "local-residence-certificate",
+      ]);
     });
   });
 
@@ -349,6 +381,42 @@ describe("Stage 4 — Feedback and consensus pipeline (end-to-end)", () => {
         .get() as { c: number };
       expect(published.c).toBe(1); // still exactly one
     });
+
+    it("persists mixed demo provenance from the real flag, including denominator contributors", async () => {
+      db.prepare("UPDATE feedback SET is_demo_data = 0").run();
+      // This respondent did not name the published concept but affects agreement.
+      db.prepare(`UPDATE feedback SET is_demo_data = 1, feedback_id = 'synthetic-without-prefix'
+        WHERE feedback_id = 'fb-demo-006'`).run();
+      await postRecompute({ today: "2026-10-10" });
+      const note = db.prepare("SELECT is_demo_data, evidence_summary FROM community_guidance").get() as {
+        is_demo_data: number; evidence_summary: string;
+      };
+      expect(note.is_demo_data).toBe(1);
+      expect(note.evidence_summary).toContain("DEMO DATA");
+
+      // An upsert clears provenance once only real reports contribute, even if
+      // their IDs still happen to start with the old demo prefix.
+      db.prepare("UPDATE feedback SET is_demo_data = 0").run();
+      await postRecompute({ today: "2026-10-10" });
+      const updated = db.prepare("SELECT is_demo_data, evidence_summary FROM community_guidance").get() as typeof note;
+      expect(updated.is_demo_data).toBe(0);
+      expect(updated.evidence_summary).not.toContain("DEMO DATA");
+    });
+
+    it("excludes ineligible dates and synthetic reports from evidence summaries", async () => {
+      db.prepare("UPDATE feedback SET is_demo_data = 0").run();
+      // The postponed visit must not add a seventh date or taint real evidence.
+      db.prepare(`UPDATE feedback SET is_demo_data = 1,
+        additional_document_concepts = '["local-residence-certificate"]'
+        WHERE attended = 0`).run();
+      await postRecompute({ today: "2026-10-10" });
+      const note = db.prepare("SELECT is_demo_data, evidence_summary FROM community_guidance").get() as {
+        is_demo_data: number; evidence_summary: string;
+      };
+      expect(note.is_demo_data).toBe(0);
+      expect(note.evidence_summary).toContain("6 applicant(s) across 6 visit date(s)");
+      expect(note.evidence_summary).not.toContain("DEMO DATA");
+    });
   });
 
   describe("GET /api/schemes/:id", () => {
@@ -378,6 +446,7 @@ describe("Stage 4 — Feedback and consensus pipeline (end-to-end)", () => {
       expect(json.community_guidance[0].document_concept_id).toBe(
         "local-residence-certificate",
       );
+      expect(json.community_guidance[0].is_demo_data).toBe(true);
     });
 
     it("5. Official document list is BYTE-IDENTICAL before and after recompute", async () => {

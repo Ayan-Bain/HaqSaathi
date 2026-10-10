@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   if (scheme.verification_tier !== "verified") {
     return NextResponse.json(
       { error: "Feedback is only collected for verified schemes." },
-      { status: 422 },
+      { status: 400 },
     );
   }
 
@@ -123,9 +123,24 @@ export async function POST(request: Request) {
     }
   }
 
-  // If the client already confirmed a suggestion, trust the confirmed ids for
-  // the names that were ambiguous and store them.
-  if (input.confirmedConcepts?.length && needsConfirmation.length) {
+  // Confirmations must account for every ambiguous suggestion exactly once.
+  // Known but unrelated IDs (or an ID for an unrecognised name) are not evidence
+  // that the applicant confirmed the suggestion we actually offered.
+  if (input.confirmedConcepts?.length) {
+    const remaining = needsConfirmation.map((item) => item.suggestedConceptId);
+    const valid = input.confirmedConcepts.every((conceptId) => {
+      if (!concepts.some((concept) => concept.concept_id === conceptId)) return false;
+      const index = remaining.indexOf(conceptId);
+      if (index === -1) return false;
+      remaining.splice(index, 1);
+      return true;
+    });
+    if (!valid || remaining.length) {
+      return NextResponse.json(
+        { error: "Confirm one matching suggestion for each ambiguous document name." },
+        { status: 400 },
+      );
+    }
     resolved.push(...input.confirmedConcepts);
     needsConfirmation.length = 0;
   }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { POST, createSchemeTool } from "@/app/api/application/check/route";
+import { POST } from "@/app/api/application/check/route";
+import { createSchemeTool } from "@/lib/check-agent";
 import { validateAgentReferences, AgentOutputSchema } from "@/lib/agent";
 import { validateApplication } from "@/lib/validateApplication";
 import { getApprovedSchemeRecord } from "@/lib/db";

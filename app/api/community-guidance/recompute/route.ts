@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import {
   computeConsensus,
+  DEFAULT_CONFIG,
   type FeedbackRow,
   type Decision,
 } from "@/lib/consensus";
@@ -29,7 +30,12 @@ interface RawFeedbackRow {
   official_list_was_sufficient: number | null;
   additional_document_concepts: string;
   consent_for_aggregate_use: number;
+  is_demo_data: number;
   quality_status: string;
+}
+
+interface ProvenancedFeedbackRow extends FeedbackRow {
+  is_demo_data: boolean;
 }
 
 interface RawGuidanceRow {
@@ -45,12 +51,12 @@ const BodySchema = z.object({
   today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
-function loadFeedbackRows(schemeId: string, districtCode: string | null): FeedbackRow[] {
+function loadFeedbackRows(schemeId: string, districtCode: string | null): ProvenancedFeedbackRow[] {
   const rows = db
     .prepare(
       `SELECT feedback_id, scheme_id, district_code, verification_date,
               attended, official_list_was_sufficient, additional_document_concepts,
-              consent_for_aggregate_use, quality_status
+              consent_for_aggregate_use, is_demo_data, quality_status
          FROM feedback
         WHERE scheme_id = ? AND district_code IS ?`,
     )
@@ -68,6 +74,7 @@ function loadFeedbackRows(schemeId: string, districtCode: string | null): Feedba
         : Boolean(r.official_list_was_sufficient),
     additional_document_concepts: JSON.parse(r.additional_document_concepts) as string[],
     consent_for_aggregate_use: Boolean(r.consent_for_aggregate_use),
+    is_demo_data: Boolean(r.is_demo_data),
     quality_status: r.quality_status,
   }));
 }
@@ -90,9 +97,8 @@ function describeRule(decision: Decision): string {
   return "published:community-reported (count>=5, distinct_dates>=2, agreement>=0.70)";
 }
 
-function buildEvidenceSummary(decision: Decision, mentioning: FeedbackRow[]): string {
+function buildEvidenceSummary(decision: Decision, mentioning: FeedbackRow[], hasDemoData = false): string {
   const distinctDates = new Set(mentioning.map((r) => r.verification_date)).size;
-  const allDemo = mentioning.length > 0 && mentioning.every((r) => r.feedback_id.startsWith("fb-demo-"));
   const pct = Math.round(decision.agreement * 1000) / 10;
   let summary =
     `Reported by ${decision.count} applicant(s) across ${distinctDates} visit date(s); ` +
@@ -101,7 +107,7 @@ function buildEvidenceSummary(decision: Decision, mentioning: FeedbackRow[]): st
   if (decision.publish && decision.status === "conflicting") {
     summary += " Applicants disagree about whether this is needed.";
   }
-  if (allDemo) summary += " DEMO DATA.";
+  if (hasDemoData) summary += " DEMO DATA — includes synthetic reports.";
   return summary;
 }
 
@@ -144,12 +150,12 @@ export async function POST(request: Request) {
        (guidance_id, scheme_id, document_concept_id, scope_state,
         scope_district_code, status, valid_report_count, agreement_ratio,
         first_reported_at, last_reported_at, published_at,
-        expires_or_review_at, evidence_summary, official_source_confirms, version)
+        expires_or_review_at, evidence_summary, is_demo_data, official_source_confirms, version)
      VALUES
        (@guidance_id, @scheme_id, @document_concept_id, @scope_state,
         @scope_district_code, @status, @valid_report_count, @agreement_ratio,
         @first_reported_at, @last_reported_at, @published_at,
-        @expires_or_review_at, @evidence_summary, 0,
+        @expires_or_review_at, @evidence_summary, @is_demo_data, 0,
         COALESCE((SELECT version FROM community_guidance WHERE guidance_id = @guidance_id), 0) + 1)
      ON CONFLICT(guidance_id) DO UPDATE SET
         status = excluded.status,
@@ -160,6 +166,7 @@ export async function POST(request: Request) {
         published_at = excluded.published_at,
         expires_or_review_at = excluded.expires_or_review_at,
         evidence_summary = excluded.evidence_summary,
+        is_demo_data = excluded.is_demo_data,
         official_source_confirms = 0,
         version = community_guidance.version + 1`,
   );
@@ -175,6 +182,13 @@ export async function POST(request: Request) {
     for (const scope of scopes) {
       const rows = loadFeedbackRows(scope.scheme_id, scope.district_code);
       const conceptIds = distinctConcepts(rows);
+      // Match computeConsensus eligibility for evidence and provenance too.
+      const cutoff = new Date(today);
+      cutoff.setDate(cutoff.getDate() - DEFAULT_CONFIG.windowDays);
+      const eligible = rows.filter((row) =>
+        row.attended && row.consent_for_aggregate_use &&
+        row.quality_status === "valid" && new Date(row.verification_date) >= cutoff,
+      );
 
       for (const conceptId of conceptIds) {
         const decision = computeConsensus(rows, conceptId, today);
@@ -199,10 +213,15 @@ export async function POST(request: Request) {
           : null;
 
         if (decision.publish) {
-          const mentioning = rows.filter((r) =>
+          const mentioning = eligible.filter((r) =>
             r.additional_document_concepts.includes(conceptId),
           );
-          const evidenceSummary = buildEvidenceSummary(decision, mentioning);
+          // Both namers and denominator respondents contribute to the decision.
+          const hasDemoData = eligible.some((row) => row.is_demo_data && (
+            row.additional_document_concepts.includes(conceptId) ||
+            row.official_list_was_sufficient !== null
+          ));
+          const evidenceSummary = buildEvidenceSummary(decision, mentioning, hasDemoData);
 
           upsertGuidance.run({
             guidance_id: guidanceId,
@@ -218,6 +237,7 @@ export async function POST(request: Request) {
             published_at: nowIso,
             expires_or_review_at: null,
             evidence_summary: evidenceSummary,
+            is_demo_data: hasDemoData ? 1 : 0,
           });
 
           insertAudit.run(

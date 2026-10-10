@@ -1214,21 +1214,23 @@ Also surface `generatedBy` in small print — "explained by AI" vs "standard exp
 
 ### Verification tests — Stage 5
 
-- [ ] Catalogue lists every row in the `schemes` table; count on screen matches `SELECT COUNT(*)`.
-- [ ] Every catalogue card shows a tier badge; verified ones also show the check date.
-- [ ] Opening a Tier B scheme shows the unverified banner and **no** checklist, no fee, no readiness button, no feedback form.
-- [ ] `POST /api/application/check` with a Tier B `schemeId` returns 404 or a `scheme_not_verified` error — the gate is server-side too, not just a hidden button.
-- [ ] `POST /api/verification/feedback` with a Tier B `schemeId` returns 400.
-- [ ] Official and community panels are visually distinct in a greyscale screenshot.
-- [ ] Every official document row shows a source link and a last-checked date.
-- [ ] The community panel does not render at all when no note is published — load the second Tier A scheme to confirm.
-- [ ] Every readiness check row shows a basis badge.
+- [x] Catalogue lists every row in the `schemes` table; count on screen matches `SELECT COUNT(*)`.
+- [x] Every catalogue card shows a tier badge; verified ones also show the check date.
+- [x] Opening a Tier B scheme shows the unverified banner and **no** checklist, no fee, no readiness button, no feedback form.
+- [x] `POST /api/application/check` with a Tier B `schemeId` returns 404 or a `scheme_not_verified` error — the gate is server-side too, not just a hidden button.
+- [x] `POST /api/verification/feedback` with a Tier B `schemeId` returns 400.
+- [x] Official and community panels are visually distinct in a greyscale screenshot.
+- [x] Every official document row shows a source link and a last-checked date.
+- [x] The community panel does not render at all when no note is published — load the second Tier A scheme to confirm.
+- [x] Every readiness check row shows a basis badge.
 - [ ] Toggling `FORCE_FALLBACK` changes the explanation text and the `generatedBy` label, and changes nothing else.
-- [ ] Page is usable at 360 px width — no horizontal scroll, tap targets ≥ 44 px.
-- [ ] A missing document shows the rule that caused the warning, not just "missing".
-- [ ] The feedback form offers "visit postponed", "I do not know", and "prefer not to answer".
-- [ ] Submitting a document name with low normalisation confidence shows a "Did you mean…?" confirm step.
-- [ ] "This is an independent tool, not a government service" is visible without scrolling on every scheme page, both tiers.
+- [x] Page is usable at 360 px width — no horizontal scroll, tap targets ≥ 44 px.
+- [x] A missing document shows the rule that caused the warning, not just "missing".
+- [x] The feedback form offers "visit postponed", "I do not know", and "prefer not to answer".
+- [x] Submitting a document name with low normalisation confidence shows a "Did you mean…?" confirm step.
+- [x] "This is an independent tool, not a government service" is visible without scrolling on every scheme page, both tiers.
+
+**Implementation verification (Stage 5):** 80 automated tests pass, TypeScript and production build pass, and Chrome checks at 360 px and desktop widths pass. Greyscale screenshot reviewed. The `FORCE_FALLBACK` explanation/label/fact-invariance contract is tested with an explicit SDK double in `tests/stage5-fallback.test.ts`; live-provider comparison remains unchecked because no model credentials were configured. No Stage 6 Demand Check implementation is included.
 
 **Exit criteria:** 15/15. Tests 4 and 5 matter more than they look — a tier gate that lives only in the React component is one `curl` away from producing a readiness report for a scheme whose rules nobody checked.
 

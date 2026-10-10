@@ -96,11 +96,44 @@ CREATE TABLE IF NOT EXISTS document_concepts (
 );
 `);
 
+// Upgrade databases created before synthetic provenance was stored per note.
+const guidanceColumns = db.prepare("PRAGMA table_info(community_guidance)").all() as { name: string }[];
+if (!guidanceColumns.some((column) => column.name === "is_demo_data")) {
+  db.exec("ALTER TABLE community_guidance ADD COLUMN is_demo_data INTEGER NOT NULL DEFAULT 0");
+  db.exec("UPDATE community_guidance SET is_demo_data = 1 WHERE evidence_summary LIKE '%DEMO DATA%'");
+}
+
+type SchemeRow = Omit<SchemeRecord, "official_documents" | "official_fee" | "validity_rules"> & {
+  official_documents: string | null;
+  official_fee: string | null;
+  validity_rules: string | null;
+};
+
+export function getSchemeRecord(schemeId: string): SchemeRecord | null {
+  const row = db.prepare("SELECT * FROM schemes WHERE scheme_id = ?").get(schemeId) as SchemeRow | undefined;
+  return row ? parseScheme(row) : null;
+}
+
+function parseScheme(row: SchemeRow): SchemeRecord {
+  return {
+    ...row,
+    official_documents: row.official_documents ? JSON.parse(row.official_documents) : null,
+    official_fee: row.official_fee ? JSON.parse(row.official_fee) : null,
+    validity_rules: row.validity_rules ? JSON.parse(row.validity_rules) : null,
+  };
+}
+
+export function getCatalogue(): SchemeRecord[] {
+  const rows = db.prepare(`SELECT * FROM schemes
+    ORDER BY CASE verification_tier WHEN 'verified' THEN 0 ELSE 1 END, name COLLATE NOCASE, scheme_id`).all() as SchemeRow[];
+  return rows.map(parseScheme);
+}
+
 export function getApprovedSchemeRecord(schemeId: string): SchemeRecord | null {
   const row = db.prepare(`
     SELECT * FROM schemes
     WHERE scheme_id = ? AND verification_tier = 'verified'
-  `).get(schemeId) as any;
+  `).get(schemeId) as SchemeRow | undefined;
 
   if (!row) return null;
 
@@ -118,11 +151,11 @@ export function getPublishedGuidance(schemeId: string): CommunityGuidanceRecord[
     FROM community_guidance cg
     LEFT JOIN document_concepts dc ON cg.document_concept_id = dc.concept_id
     WHERE cg.scheme_id = ? AND cg.status IN ('community-reported', 'conflicting')
-  `).all(schemeId) as any[];
+  `).all(schemeId) as (Omit<CommunityGuidanceRecord, "is_demo_data"> & { is_demo_data: number })[];
 
   return rows.map((r) => ({
     ...r,
-    official_source_confirms: Boolean(r.official_source_confirms),
+    is_demo_data: Boolean(r.is_demo_data) || Boolean(r.evidence_summary?.includes("DEMO DATA")),
   }));
 }
 
