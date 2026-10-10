@@ -120,3 +120,4 @@ describe("Stage 1 — Data layer and tiered catalogue verification", () => {
     expect(listed).toBeNull();
   });
 });
+

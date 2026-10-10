@@ -27,11 +27,11 @@ function seed() {
   const runSchemes = db.transaction((rows: any[]) => {
     for (const r of rows) {
       upsertScheme.run({
+        state: null,
+        category: null,
+        official_source_url: null,
+        official_source_checked_at: null,
         ...r,
-        state: r.state ?? null,
-        category: r.category ?? null,
-        official_source_url: r.official_source_url ?? null,
-        official_source_checked_at: r.official_source_checked_at ?? null,
         official_documents: r.official_documents ? JSON.stringify(r.official_documents) : null,
         official_fee: r.official_fee ? JSON.stringify(r.official_fee) : null,
         validity_rules: r.validity_rules ? JSON.stringify(r.validity_rules) : null,
@@ -109,3 +109,4 @@ function seed() {
 }
 
 seed();
+

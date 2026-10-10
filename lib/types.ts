@@ -108,3 +108,4 @@ export interface DocumentConceptRecord {
   canonical_name: string;
   synonyms: string[];
 }
+
